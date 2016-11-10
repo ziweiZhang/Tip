@@ -4,7 +4,7 @@
     return null
     @option {
         direct:"bottom center",        //第一个是提示框相对于元素的位置top right bottom left,第二个是小三角符号相对于元素的位置，默认为'bottom left'
-        type:"normal",      //目前有两种样式normal(默认),default,guide,hover
+        type:"normal",      //目前有两种样式normal(默认),default,hover
         content:"name error",   //html字符串
         time:"2000"         //显示的时长，默认2000毫秒,
         distance:"10"
