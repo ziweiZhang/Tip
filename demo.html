@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tip Demo</title>
+    <link rel="stylesheet" type="text/css" href="css/tip.css">
+    <style type="text/css">
+    body{
+    	padding-bottom:100px;
+    }
+    .demo {
+        margin: 10px auto;
+        width: 680px;
+    }
+    
+    span {
+        display: inline-block;
+        border: 1px #ccc solid;
+        border-radius: 5px;
+        margin: 20px;
+        padding: 5px 0;
+        width: 180px;
+        text-align: center;
+    }
+    
+    .click {
+        cursor: pointer;
+    }
+    
+    .site-tip {
+        width: 200px;
+    }
+    </style>
+</head>
+
+<body>
+    <div class="demo">
+        <span class="click">click left top</span>
+        <span class="click">click left center</span>
+        <span class="click">click left bottom</span>
+        <span class="click">click right top</span>
+        <span class="click">click right center</span>
+        <span class="click">click right bottom</span>
+        <span class="click">click top left</span>
+        <span class="click">click top center</span>
+        <span class="click">click top right</span>
+        <span class="click">click bottom left</span>
+        <span class="click">click bottom center</span>
+        <span class="click">click bottom right</span>
+    </div>
+    <div class="demo">
+        <span class="tip-hover">hover left top</span>
+        <span class="tip-hover">hover left center</span>
+        <span class="tip-hover">hover left bottom</span>
+        <span class="tip-hover">hover right top</span>
+        <span class="tip-hover">hover right center</span>
+        <span class="tip-hover">hover right bottom</span>
+        <span class="tip-hover">hover top left</span>
+        <span class="tip-hover">hover top center</span>
+        <span class="tip-hover">hover top right</span>
+        <span class="tip-hover">hover bottom left</span>
+        <span class="tip-hover">hover bottom center</span>
+        <span class="tip-hover">hover bottom right</span>
+    </div>
+    <script type="text/javascript" src="js/jquery-1.11.3.min.js"></script>
+    <script type="text/javascript" src="js/tip.js"></script>
+    <script type="text/javascript">
+    $.each($(".tip-hover"), function(index, item) {
+        var $this = $(this),
+            content = $this.text(),
+            direct = content.replace("hover", "");
+        $this.attr({"data-content":content,"data-direct":direct});
+    })
+    $("div").on("click", ".click", function() {
+        var $this = $(this),
+            content = $this.text(),
+            direct = content.replace("click", "");
+        $this.Tip({
+            type: "normal",
+            content: content,
+            direct: direct
+        });
+    })
+    </script>
+</body>
+
+</html>
