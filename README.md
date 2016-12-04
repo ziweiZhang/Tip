@@ -13,7 +13,7 @@
         class:"", //提示框类名
         parent:""   //提示框的父元素
     }
-    ·提示 父元素默认为body，若父元素含有fixed元素，自动将fixed元素作为提示框父元素·
+    ·提示 父元素默认为元素的父元素·
 ##使用方式：
     $element.Tip(option);
     ·警告：$element不能是display:none的元素·
