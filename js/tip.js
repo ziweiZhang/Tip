@@ -12,7 +12,7 @@
         class:"", //提示框类名
         parent:""   //提示框的父元素
     }
-    detail 父元素默认为body，若父元素含有fixed元素，自动将fixed元素作为提示框父元素
+    detail 父元素默认为元素的父元素
     使用方式：
     $element.Tip(option);
     警告：$element不能是display:none的元素
@@ -30,10 +30,8 @@ $("body").off("mouseover", ".tip-hover").on("mouseover", ".tip-hover", function(
         direct: $this.data("direct"),
         class: $this.data("class"),
         id: $this.data("tipid"),
-        parent: $this.data("parent")
+        parent: $this.data("parent")?$($this.data("parent")):""
     });
-}).off("mouseout", ".tip-hover").on("mouseout", ".tip-hover", function() {
-    $(".site-tip-hover").remove();
 });
 var Tip = function(option) {
     new SiteTip(this, option);
@@ -45,44 +43,33 @@ var SiteTip = function(element, option) {
     this.resize(element, option, true);
 }
 var $parent;
+SiteTip.prototype.isRelative = function($element) {
+    var position = $element.css("position");
+    if (position == "relative" || position == "absolute" || position == "fixed") {
+        return true;
+    }
+    return false;
+}
 SiteTip.prototype.resize = function(element, option) {
     option.direct = $.trim(option.direct) ? $.trim(option.direct) : "bottom";
-
     $parent = option.parent;
-
-    var rect = element[0].getBoundingClientRect(); //元素相对于视口的位置以及宽高
-
-    var _parentnode = $parent || this.getParent(element),
-        _scrollTop = this.getScrollTop(element),
+    var rect = element[0].getBoundingClientRect(), //元素相对于视口的位置以及宽高
+        _parentnode = $parent || (element[0].tagName == "HTML" ? element : element.parent()), //||this.getParent(element),
         position,
+        relativeParent = this.isRelative(_parentnode) ? _parentnode : this.getRelativeParent(_parentnode),
         Pposition,
-        _style,
-        style;
-    if (option.parent) {
-        position = element.offset(); //元素相对于文档的left、top
-        Pposition = $parent.offset();
-        position.left -= Pposition.left;
-        position.top -= Pposition.top; //元素相对于父元素的left、top
-        position.top += _scrollTop.scrollTop;
-    } else if (_parentnode[0].tagName != "BODY") {
-        position = element.offset(); //元素相对于文档的left、top
-        Pposition = _parentnode.offset();
-        _style = this.getComputedStyle(_parentnode[0]);
-
-        _scrollTop.height = _scrollTop.element[0].offsetHeight;
-        _scrollTop.top = _scrollTop.element.offset().top;
-
-        style = (_style.position == "fixed" ? "position:fixed;" : "") +
-            (_style["z-index"] ? ("z-index:" + _style["z-index"]) : "z-index:1000");
-    } else {
-        position = element.offset(); //元素相对于文档的left、top
-    }
-
-    var id = option.id || this.getUID("siteTip");
-    option.id = id;
-    var type = option.type || "normal",
+        Rrect = relativeParent[0].getBoundingClientRect(),
+        id = option.id || this.getUID("siteTip"),
+        type = option.type || "normal",
         panelDirect = option.direct.split(" ")[0],
         triangleDirect = option.direct.split(" ")[1];
+    option.id = id;
+    position = element.offset(); //元素相对于文档的left、top
+    Pposition = relativeParent.offset();
+    position.left -= Pposition.left;
+    position.top -= Pposition.top; //元素相对于父元素的left、top
+    position.top += relativeParent.scrollTop();
+
     if (!triangleDirect) {
         if (panelDirect == "left" || panelDirect == "right") {
             triangleDirect = "center";
@@ -91,7 +78,7 @@ SiteTip.prototype.resize = function(element, option) {
         }
     }
 
-    var html = '<div id="' + id + '" ' + (style ? 'style="' + style + '"' : '') + 'class="site-tip site-tip-' + type + ' site-tip-' + panelDirect + ' ' + triangleDirect + ' ' + (option.clickable ? 'clickable' : '') + ' ' + (option.trianglePosition ? ('triangle-' + option.trianglePosition) : '') + (option.class ? option.class : '') + '">' + option.content + '</div>';
+    var html = '<div id="' + id + '" ' + 'class="site-tip site-tip-' + type + ' site-tip-' + panelDirect + ' ' + triangleDirect + ' ' + (option.clickable ? 'clickable' : '') + ' ' + (option.trianglePosition ? ('triangle-' + option.trianglePosition) : '') + (option.class ? option.class : '') + '">' + option.content + '</div>';
     var xDistance = option.xDistance || 0,
         distance = option.distance || 10,
         yDistance = option.yDistance || 0;
@@ -99,7 +86,8 @@ SiteTip.prototype.resize = function(element, option) {
 
     position.width = rect.width || rect.right - rect.left;
     position.height = rect.height || rect.bottom - rect.top;
-    var _this = this;
+    Pposition.width = Rrect.width || Rrect.right - Rrect.left;
+    Pposition.height = Rrect.height || Rrect.bottom - Rrect.top;
     _parentnode.append(html);
 
     var $tip = $("#" + id);
@@ -109,9 +97,6 @@ SiteTip.prototype.resize = function(element, option) {
 
     tipRect.width = $tip[0].offsetWidth;
     tipRect.height = $tip[0].offsetHeight;
-    if (element[0].tagName == "INPUT" || element[0].tagName == "TEXTAREA") {
-        element.focus();
-    }
 
     switch (panelDirect) {
         case "top":
@@ -123,28 +108,7 @@ SiteTip.prototype.resize = function(element, option) {
             } else if (triangleDirect == "right") {
                 _left += position.width - tipRect.width;
             }
-            if (position.top < _scrollTop.top) {
-                $tip.css({
-                    top: _scrollTop.top + position.height + _top + "px",
-                    left: _left + "px"
-                });
-                _scrollTop.element.scrollTop(_scrollTop.scrollTop - _scrollTop.top + position.top - position.height);
 
-            } else if (position.top - _scrollTop.top > _scrollTop.height) {
-                $tip.css({
-                    top: _scrollTop.top + _scrollTop.height - position.height + _top + "px",
-                    left: _left + "px"
-                });
-                _scrollTop.element.scrollTop(position.top - _scrollTop.top - _scrollTop.height + position.height + _scrollTop.scrollTop);
-
-            } else {
-
-                $tip.css({
-                    top: position.top + _top + "px",
-                    left: _left + "px"
-                });
-
-            }
             break;
         case "bottom":
             triangleDirect = triangleDirect ? triangleDirect : "left";
@@ -156,27 +120,7 @@ SiteTip.prototype.resize = function(element, option) {
             } else if (triangleDirect == "right") {
                 _left += position.width - tipRect.width;
             }
-            if (position.top < _scrollTop.top) {
-                $tip.css({
-                    top: _scrollTop.top + position.height + _top + "px",
-                    left: _left + "px"
-                });
-                _scrollTop.element.scrollTop(_scrollTop.scrollTop - _scrollTop.top + position.top - position.height);
 
-            } else if (position.top - _scrollTop.top > _scrollTop.height) {
-                $tip.css({
-                    top: _scrollTop.top + _scrollTop.height - position.height + _top + "px",
-                    left: _left + "px"
-                });
-                _scrollTop.element.scrollTop(position.top - _scrollTop.top - _scrollTop.height + position.height + _scrollTop.scrollTop);
-
-            } else {
-                $tip.css({
-                    top: position.top + _top + "px",
-                    left: _left + "px"
-                });
-
-            }
             break;
         case "left":
             triangleDirect = triangleDirect ? triangleDirect : "center";
@@ -189,27 +133,6 @@ SiteTip.prototype.resize = function(element, option) {
             } else if (triangleDirect == "bottom") {
                 _top = position.height - tipRect.height;
             }
-
-            if (position.top < _scrollTop.top) {
-                $tip.css({
-                    top: _scrollTop.top + position.height + _top + "px",
-                    left: _left + "px"
-                });
-                _scrollTop.element.scrollTop(_scrollTop.scrollTop - _scrollTop.top + position.top - position.height);
-
-            } else if (position.top - _scrollTop.top > _scrollTop.height) {
-                $tip.css({
-                    top: _scrollTop.top + _scrollTop.height - position.height + _top + "px",
-                    left: _left + "px"
-                });
-                _scrollTop.element.scrollTop(position.top - _scrollTop.top - _scrollTop.height + position.height + _scrollTop.scrollTop);
-
-            } else {
-                $tip.css({
-                    top: position.top + _top + "px",
-                    left: _left + "px"
-                });
-            }
             break;
         case "right":
             triangleDirect = triangleDirect ? triangleDirect : "center";
@@ -220,34 +143,26 @@ SiteTip.prototype.resize = function(element, option) {
             } else if (triangleDirect == "bottom") {
                 _top = position.height - tipRect.height;
             }
-            if (position.top < _scrollTop.top) {
-                $tip.css({
-                    top: _scrollTop.top + position.height + _top + "px",
-                    left: _left + "px"
-                });
-                _scrollTop.element.scrollTop(_scrollTop.scrollTop - _scrollTop.top + position.top - position.height);
-
-            } else if (position.top - _scrollTop.top > _scrollTop.height) {
-                $tip.css({
-                    top: _scrollTop.top + _scrollTop.height - position.height + _top + "px",
-                    left: _left + "px"
-                });
-                _scrollTop.element.scrollTop(position.top - _scrollTop.top - _scrollTop.height + position.height + _scrollTop.scrollTop);
-
-            } else {
-                $tip.css({
-                    top: position.top + _top + "px",
-                    left: _left + "px"
-                });
-
-            }
             break;
     }
 
+    $tip.css({
+        top: position.top + _top + "px",
+        left: _left + "px"
+    });
+
+    if (position.top < relativeParent.scrollTop()) {
+        relativeParent.scrollTop(position.top);
+    } else if (position.top - relativeParent.scrollTop() + _top + tipRect.height> Pposition.height) {
+        relativeParent.scrollTop(position.top - Pposition.height + _top + tipRect.height)
+    }
+    
     if (option.type == "hover") {
+        element.one("mouseout", function() {
+            $tip.remove();
+        });
         return false;
     }
-    $tip.show();
     setTimeout(function() {
         $tip.remove();
     }, option.time || 2000);
@@ -257,57 +172,14 @@ SiteTip.prototype.getUID = function(prefix) {
     while (document.getElementById(prefix))
     return prefix;
 }
-SiteTip.prototype.getParent = function($element) {
-    var element = $element[0];
 
-    if (!element.parentNode) {
-        return $("body");
+SiteTip.prototype.getRelativeParent = function($element) {
+    if (this.isRelative($element) || $element[0].tagName == "HTML") {
+        return $element;
     }
-    if (element.parentNode.tagName == "BODY") {
-        return $element.parent();
-    }
-    if (this.getComputedStyle(element.parentNode).position == "fixed") {
-        return $element.parent();
-    } else {
-        return this.getParent($element.parent());
-    }
+    return this.getRelativeParent($element.parent());
+}
 
-}
-SiteTip.prototype.getScrollTop = function($element) {
-    var element = $element[0],
-        scrollTop = $element.scrollTop(),
-        limitHeight = this.getComputedStyle(element)["max-height"];
-    if (this.getComputedStyle(element).position == "fixed") {
-        return {
-            element: $element,
-            scrollTop: 0,
-            height: element.getBoundingClientRect().height
-        }
-    }
-    if (element.tagName == "BODY") {
-        return {
-            element: $element,
-            scrollTop: scrollTop,
-            height: element.getBoundingClientRect().height
-        };
-    } else if (scrollTop > 0 || limitHeight.substring(0, 1) > 0) {
-        return {
-            element: $element,
-            scrollTop: scrollTop,
-            height: element.getBoundingClientRect().height
-        };
-    } else {
-        return this.getScrollTop($element.parent());
-    }
-}
-SiteTip.prototype.getComputedStyle = function(obj) {
-    if (window.getComputedStyle) {
-        style = window.getComputedStyle(obj, null); // 非IE
-    } else {
-        style = obj.currentStyle; // IE
-    }
-    return style;
-}
 $.fn.extend({
     Tip: Tip
 });
