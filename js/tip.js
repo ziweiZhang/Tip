@@ -63,6 +63,7 @@ SiteTip.prototype.resize = function(element, option) {
         type = option.type || "normal",
         panelDirect = option.direct.split(" ")[0],
         triangleDirect = option.direct.split(" ")[1];
+
     option.id = id;
     position = element.offset(); //元素相对于文档的left、top
     Pposition = relativeParent.offset();
@@ -147,7 +148,7 @@ SiteTip.prototype.resize = function(element, option) {
     }
 
     $tip.css({
-        top: position.top + _top + "px",
+        top: position.top + _top - document.documentElement.scrollTop + "px",
         left: _left + "px"
     });
 
